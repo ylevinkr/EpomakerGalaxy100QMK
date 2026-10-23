@@ -172,6 +172,11 @@
             "name": "RGB_RTOG",
             "title": "Toggle all LEDs",
             "shortName": "RGB_RTOG"
+        },
+        {
+            "name": "FN_HL",
+            "title": "Toggle Fn-layer key highlight (fn_highlight keymap)",
+            "shortName": "FN_HL"
         }
     ],
     "matrix": {

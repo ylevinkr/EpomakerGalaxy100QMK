@@ -5,6 +5,12 @@ Port of `epomaker/galaxy100_lite` for the Galaxy100 sold from Oct 2025 on
 Lite; only the name and PID differ. **Not** for the older WB32 Galaxy100
 (`342D:E489`).
 
+The `fn_highlight` keymap lights every key that has its own assignment on the
+active Fn layer while that layer is held (custom keycode `FN_HL` toggles it,
+state kept in EEPROM).
+
+    make epomaker/galaxy100_r:fn_highlight
+
 The original Lite notes follow.
 
 A customizable 96% (1800) keyboard with 100 keys and a rotary knob, built around
