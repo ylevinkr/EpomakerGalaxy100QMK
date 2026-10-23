@@ -218,9 +218,23 @@ OSAL_IRQ_HANDLER(Vector5C) {
 
 // BS16T1_IRQHandler 2ms
 OSAL_IRQ_HANDLER(Vector78) {
+    static uint16_t Spi_Busy_Ticks = 0;
+
     OSAL_IRQ_PROLOGUE();
 
     BS16T1->ICR = BS16T1->IFM;
+
+    // A transfer normally completes within a few ms. If the module never answers
+    // (missed ACK edge, module reset), release the bus instead of blocking every
+    // later report and status poll until the next reboot.
+    if (Spi_Send_Recv_Flg) {
+        if (++Spi_Busy_Ticks >= SPI_HANDSHAKE_TIMEOUT_TICKS) {
+            Spi_Busy_Ticks    = 0;
+            Spi_Send_Recv_Flg = 0;
+        }
+    } else {
+        Spi_Busy_Ticks = 0;
+    }
 
     if (Init_Spi_Power_Up) {
         Init_Spi_100ms_Delay++;

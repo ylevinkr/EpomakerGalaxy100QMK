@@ -53,6 +53,7 @@
 
 #define SPI_DELAY_RF_TIME       (60)
 #define SPI_DELAY_USB_TIME      (500 * 3)
+#define SPI_HANDSHAKE_TIMEOUT_TICKS (250) // 2 ms ticks: give up on a transfer after 500 ms
 
 enum Custom_Spi_Ack_S {
     SPI_NACK,
