@@ -151,10 +151,6 @@ const host_driver_t es_user_driver  = {
 };
 
 void User_bluetooth_send_keyboard(uint8_t *report, uint32_t len) {
-	if(app_2g4_buffer_full()) {
-		return;
-	}
-
     if (len > USER_KEYBOARD_LENGTH - 3) {
         len = USER_KEYBOARD_LENGTH - 3;
     }
@@ -190,13 +186,13 @@ void User_bluetooth_send_keyboard(uint8_t *report, uint32_t len) {
                 break;
             }
             default: {
-                break;
+                // Unknown report: byte 2 would stay 0x00, which the module reads as "switch to 2.4G"
+                return;
             }
         }
     }
 
-    memcpy(app_2g4_data[app_2g4_data_rev], Temp_Tx_Buf, USER_KEYBOARD_LENGTH);
-    app_2g4_buffer_rev_add();
+    app_2g4_buffer_push(Temp_Tx_Buf);
 }
 
 void User_Usb_Init(void) {
