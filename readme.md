@@ -32,6 +32,7 @@ They keyboards that have been incorporated are:
 - Epomaker Split 65
 - Epomaker Split 70
 - Epomaker Galaxy 100 Lite
+- Epomaker Galaxy100 new revision (sold from Oct 2025, USB `36B0:30D4`, `epomaker/galaxy100_r`)
 
 These are keyboards I own or have been tested and reported back to work. There might be differences to the official firmware in keymaps, sleep times, battery consumption and other factors but the main features should work as the original (wireless, LEDs, etc).
 
