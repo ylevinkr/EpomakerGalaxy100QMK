@@ -128,8 +128,6 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
             }
             if (fn_hl_rows[row] & ((uint16_t)1 << col)) {
                 rgb_matrix_set_color(index, rgb.r, rgb.g, rgb.b);
-            } else {
-                rgb_matrix_set_color(index, 0, 0, 0);
             }
         }
     }
