@@ -88,6 +88,22 @@
                             "content": ["id_qmk_rgb_matrix_color", 3, 4]
                         }
                     ]
+                },
+                {
+                    "label": "Fn highlight",
+                    "content": [
+                        {
+                            "label": "Highlight Fn-layer keys",
+                            "type": "toggle",
+                            "content": ["id_fn_hl_enable", 0, 2]
+                        },
+                        {
+                            "showIf": "{id_fn_hl_enable} == 1",
+                            "label": "Color",
+                            "type": "color",
+                            "content": ["id_fn_hl_color", 0, 3]
+                        }
+                    ]
                 }
             ]
         },
@@ -203,6 +219,11 @@
             "name": "FN_HL",
             "title": "Toggle Fn-layer key highlight (fn_highlight keymap)",
             "shortName": "FN_HL"
+        },
+        {
+            "name": "FN_HLC",
+            "title": "Next Fn-highlight colour (Shift: previous)",
+            "shortName": "FN_HLC"
         }
     ],
     "matrix": {

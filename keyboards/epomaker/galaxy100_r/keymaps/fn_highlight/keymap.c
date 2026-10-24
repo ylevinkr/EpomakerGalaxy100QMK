@@ -25,8 +25,10 @@ _Static_assert(MATRIX_COLS <= 16, "highlight bitmap uses one uint16_t per row");
 
 enum keymap_keycodes {
     FN_HL = QMK_KB_SAFE_RANGE, // VIA customKeycodes: entry after SLP_TM
+    FN_HLC,                    // next highlight colour (with Shift: previous)
 };
 _Static_assert((uint16_t)FN_HL == (uint16_t)QK_KB_17, "FN_HL must match its customKeycodes position in VIA_Mapping_Galaxy100_R.json");
+_Static_assert((uint16_t)FN_HLC == (uint16_t)QK_KB_18, "FN_HLC must match its customKeycodes position in VIA_Mapping_Galaxy100_R.json");
 
 // Layers that never trigger the overlay (Windows base, macOS base)
 #ifndef FN_HL_BASE_LAYERS
@@ -36,12 +38,62 @@ _Static_assert((uint16_t)FN_HL == (uint16_t)QK_KB_17, "FN_HL must match its cust
 #    define FN_HL_COLOR HSV_ORANGE
 #endif
 
-#define FN_HL_EECONFIG_OFF_BIT 0x01 // stored inverted so a cleared EEPROM means "on"
+// VIA Lighting > Fn highlight, custom channel (value 1 is the board's sleep time)
+enum fn_hl_via_value {
+    id_fn_hl_enable = 2,
+    id_fn_hl_color  = 3,
+};
 
-static bool          fn_hl_enabled = true;
-static bool          fn_hl_dirty   = true;
-static layer_state_t fn_hl_state;
-static uint16_t      fn_hl_rows[MATRIX_ROWS];
+typedef union {
+    uint32_t raw;
+    struct {
+        uint8_t flags;
+        uint8_t hue;
+        uint8_t sat;
+        uint8_t magic;
+    };
+} fn_hl_config_t;
+_Static_assert(sizeof(fn_hl_config_t) == EECONFIG_USER_DATA_SIZE, "fn_hl_config_t is the whole user datablock");
+
+#define FN_HL_EECONFIG_OFF_BIT 0x01 // stored inverted so a cleared EEPROM means "on"
+#define FN_HL_COLOR_MAGIC 0xC7      // hue/sat are valid; anything else falls back to FN_HL_COLOR
+
+static const hsv_t fn_hl_palette[] = {
+    {HSV_ORANGE}, {HSV_RED}, {HSV_YELLOW}, {HSV_GREEN}, {HSV_CYAN}, {HSV_BLUE}, {HSV_PURPLE}, {HSV_MAGENTA}, {HSV_WHITE},
+};
+
+static fn_hl_config_t fn_hl_config;
+static bool           fn_hl_dirty = true;
+static layer_state_t  fn_hl_state;
+static uint16_t       fn_hl_rows[MATRIX_ROWS];
+
+static bool fn_hl_enabled(void) {
+    return !(fn_hl_config.flags & FN_HL_EECONFIG_OFF_BIT);
+}
+
+static void fn_hl_save(void) {
+    eeconfig_update_user_datablock(&fn_hl_config, 0, sizeof(fn_hl_config));
+}
+
+static void fn_hl_set_color(uint8_t hue, uint8_t sat) {
+    fn_hl_config.hue   = hue;
+    fn_hl_config.sat   = sat;
+    fn_hl_config.magic = FN_HL_COLOR_MAGIC;
+}
+
+static void fn_hl_cycle_color(bool reverse) {
+    const uint8_t count = ARRAY_SIZE(fn_hl_palette);
+    uint8_t       i     = 0;
+    while (i < count && !(fn_hl_palette[i].h == fn_hl_config.hue && fn_hl_palette[i].s == fn_hl_config.sat)) {
+        i++;
+    }
+    // A colour picked in VIA is not in the palette: continue from either end
+    if (i == count) {
+        i = reverse ? 0 : count - 1;
+    }
+    i = reverse ? (i + count - 1) % count : (i + 1) % count;
+    fn_hl_set_color(fn_hl_palette[i].h, fn_hl_palette[i].s);
+}
 
 static uint16_t fn_hl_keycode_below(uint8_t top, layer_state_t state, keypos_t pos) {
     for (int8_t layer = top - 1; layer >= 0; layer--) {
@@ -72,21 +124,66 @@ static void fn_hl_rebuild(uint8_t top, layer_state_t state) {
 }
 
 void keyboard_post_init_user(void) {
-    uint8_t flags;
-    eeconfig_read_user_datablock(&flags, 0, sizeof(flags));
-    fn_hl_enabled = !(flags & FN_HL_EECONFIG_OFF_BIT);
+    eeconfig_read_user_datablock(&fn_hl_config, 0, sizeof(fn_hl_config));
+    if (fn_hl_config.magic != FN_HL_COLOR_MAGIC) {
+        const hsv_t def = {FN_HL_COLOR};
+        fn_hl_set_color(def.h, def.s);
+    }
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    if (keycode == FN_HL) {
-        if (record->event.pressed) {
-            fn_hl_enabled = !fn_hl_enabled;
-            uint8_t flags = fn_hl_enabled ? 0 : FN_HL_EECONFIG_OFF_BIT;
-            eeconfig_update_user_datablock(&flags, 0, sizeof(flags));
-        }
-        return false;
+    switch (keycode) {
+        case FN_HL:
+            if (record->event.pressed) {
+                fn_hl_config.flags ^= FN_HL_EECONFIG_OFF_BIT;
+                fn_hl_save();
+            }
+            return false;
+        case FN_HLC:
+            if (record->event.pressed) {
+                fn_hl_cycle_color(get_mods() & MOD_MASK_SHIFT);
+                fn_hl_save();
+            }
+            return false;
+        default:
+            return true;
     }
-    return true;
+}
+
+void via_custom_value_command_user(uint8_t *data, uint8_t length) {
+    uint8_t *command_id = &(data[0]);
+    uint8_t *channel_id = &(data[1]);
+    uint8_t *value_id   = &(data[2]);
+    uint8_t *value_data = &(data[3]);
+
+    if (*channel_id != id_custom_channel || (*value_id != id_fn_hl_enable && *value_id != id_fn_hl_color)) {
+        *command_id = id_unhandled;
+        return;
+    }
+
+    switch (*command_id) {
+        case id_custom_set_value:
+            if (*value_id == id_fn_hl_enable) {
+                fn_hl_config.flags = value_data[0] ? (fn_hl_config.flags & ~FN_HL_EECONFIG_OFF_BIT) : (fn_hl_config.flags | FN_HL_EECONFIG_OFF_BIT);
+            } else {
+                fn_hl_set_color(value_data[0], value_data[1]);
+            }
+            break;
+        case id_custom_get_value:
+            if (*value_id == id_fn_hl_enable) {
+                value_data[0] = fn_hl_enabled();
+            } else {
+                value_data[0] = fn_hl_config.hue;
+                value_data[1] = fn_hl_config.sat;
+            }
+            break;
+        case id_custom_save:
+            fn_hl_save();
+            break;
+        default:
+            *command_id = id_unhandled;
+            break;
+    }
 }
 
 bool via_command_kb(uint8_t *data, uint8_t length) {
@@ -103,7 +200,7 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
 }
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
-    if (!fn_hl_enabled) {
+    if (!fn_hl_enabled()) {
         return true;
     }
 
@@ -116,8 +213,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         fn_hl_rebuild(top, state);
     }
 
-    hsv_t hsv = {FN_HL_COLOR};
-    hsv.v     = rgb_matrix_get_val();
+    hsv_t hsv = {fn_hl_config.hue, fn_hl_config.sat, rgb_matrix_get_val()};
     rgb_t rgb = hsv_to_rgb(hsv);
 
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
@@ -158,7 +254,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_ESC,  KC_MYCM, KC_WHOM, KC_CALC, KC_MAIL, KC_MSEL, KC_MSTP, KC_MPRV, KC_MPLY, KC_MNXT, KC_MUTE, KC_VOLD, KC_VOLU, KC_DEL,  KC_HOME, KC_END,  KC_PSCR, KC_MUTE,
         KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS, KC_EQL,  EE_CLR,  KC_INS,  KC_NUM,  KC_PSLS, KC_PAST, KC_PMNS,
         KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, SLP_TM, KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
-        KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
+        KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   FN_HLC,  KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
         KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, RM_VALU, KC_P1,   KC_P2,   KC_P3,   KC_PENT,
         KC_LCTL, QK_WLO,  KC_LALT,                   QK_BAT,                    KC_RALT, KC_NO,   RM_SPDD, RM_VALD, RM_SPDU, KC_P0,   KC_PDOT
     ),
@@ -166,7 +262,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_ESC,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  KC_DEL,  KC_HOME, KC_END,  KC_PSCR, KC_MUTE,
         KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS, KC_EQL,  EE_CLR,  KC_INS,  KC_NUM,  KC_PSLS, KC_PAST, KC_PMNS,
         KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, SLP_TM, KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
-        KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
+        KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   FN_HLC,  KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
         KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, RM_VALU, KC_P1,   KC_P2,   KC_P3,   KC_PENT,
         KC_LCTL, KC_LALT, KC_LGUI,                   QK_BAT,                    KC_RGUI, KC_NO,   RM_SPDD, RM_VALD, RM_SPDU, KC_P0,   KC_PDOT
     )

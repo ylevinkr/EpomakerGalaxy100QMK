@@ -107,6 +107,11 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 }
 
 #ifdef VIA_ENABLE
+// Lets the keymap handle its own custom-channel values (e.g. fn_highlight's menu)
+__attribute__((weak)) void via_custom_value_command_user(uint8_t *data, uint8_t length) {
+    data[0] = id_unhandled;
+}
+
 // VIA "Wireless" menu (VIA_Mapping_Galaxy100_R.json): custom channel, value 1 = sleep time in minutes
 void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *command_id = &(data[0]);
@@ -115,7 +120,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *value_data = &(data[3]);
 
     if (*channel_id != id_custom_channel || *value_id != 1) {
-        *command_id = id_unhandled;
+        via_custom_value_command_user(data, length);
         return;
     }
 

@@ -5,9 +5,10 @@ Port of `epomaker/galaxy100_lite` for the Galaxy100 sold from Oct 2025 on
 Lite; only the name and PID differ. **Not** for the older WB32 Galaxy100
 (`342D:E489`).
 
-The `fn_highlight` keymap lights every key that has its own assignment on the
-active Fn layer while that layer is held (custom keycode `FN_HL` toggles it,
-state kept in EEPROM).
+The `fn_highlight` keymap recolours every key that has its own assignment on the
+active Fn layer while that layer is held, on top of the running effect. `FN_HL`
+(Fn+H) toggles it, `FN_HLC` (Fn+J, Shift+Fn+J backwards) cycles the colour; both
+are also in VIA under Lighting > Fn highlight. Settings are kept in EEPROM.
 
     make epomaker/galaxy100_r:fn_highlight
 
