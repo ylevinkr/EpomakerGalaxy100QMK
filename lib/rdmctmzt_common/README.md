@@ -75,6 +75,7 @@ Define these in your keyboard's `config.h` to customize behavior:
 | `LOGO_LED_ENABLE`                 | `0` (off) | Enable Logo LED feature with independent effects          |
 | `HAS_MODE_SWITCH`                 | `1` (on)  | Read a 3-position USB/2.4G/BT switch on boot (see below)  |
 | `KB_FN_LAYER_MASK`                | `2`, `3`  | Layers that show the connection mode while active (Fn)    |
+| `RF_SLEEP_TIMER_ENABLE`           | `0` (off) | Configurable RF idle sleep time (see Power Saving)        |
 
 ### Required LED Index Definitions
 
@@ -198,6 +199,20 @@ The library monitors the `ES_BATT_STDBY_IO` pin for charging status:
 - RGB LEDs turn off during sleep
 - Wireless module enters low-power state
 
+The RF module decides when to sleep. With `RF_SLEEP_TIMER_ENABLE = 1` the
+library sets its idle time the way the stock firmware does: SPI commands `0x15`
+(idle time) and `0x16` (deep sleep time, always `0xFFFFFF` = off), each with
+the time in seconds as 4 big-endian bytes. The module reports both values in
+bytes 11-18 of its status reply; they are rewritten whenever they differ (at
+most 5 times in a row, so a module without this command is left alone).
+
+- Choices: 1, 3 (default), 10 or 30 minutes, saved with the other settings
+- `SLP_TM` cycles through them; the first 1-4 battery LEDs show the choice in cyan
+- `Rf_Sleep_Time_Get()` / `Rf_Sleep_Time_Set(minutes)` for a VIA menu (see
+  `keyboards/epomaker/galaxy100_r`)
+
+Only enable it on boards whose stock firmware has the `TIME_ST` key.
+
 ---
 
 ## Connection Modes
@@ -268,6 +283,10 @@ Each channel maintains its own pairing information.
 | `QMK_MAC_WIN_CH`   | `MW_CH`   | Toggle Mac/Windows mode    |
 | `QMK_TEST_COLOUR`  | `TEST_CL` | Enter LED test mode        |
 | `QMK_DEBUG_SWITCH` | `DBG_SW`  | Debug mode switch position |
+| `QMK_SLEEP_TIME`   | `SLP_TM`  | Cycle RF idle sleep time   |
+
+`SLP_TM` exists only with `RF_SLEEP_TIMER_ENABLE`. Keyboards and keymaps can add
+their own keycodes starting at `QMK_KB_SAFE_RANGE`.
 
 ### LED Test Mode
 

@@ -56,6 +56,79 @@ void Ble_Name_Synchronization(void) {
     }
 }
 
+#if RF_SLEEP_TIMER_ENABLE
+// Idle times the RF module accepts, in minutes (the stock firmware's TIME_ST choices)
+static const uint8_t Rf_Sleep_Minutes_Tab[RF_SLEEP_TIME_COUNT] = {1, 3, 10, 30};
+
+// Stop rewriting after this many mismatching status replies (module without support)
+#define RF_SLEEP_TIME_RETRIES 5
+
+volatile bool    Sleep_Time_Spi_Send   = false;
+static uint8_t   Sleep_Time_Spi_Step   = 0;
+static volatile uint8_t Sleep_Time_Retry_Left = RF_SLEEP_TIME_RETRIES;
+
+uint8_t Rf_Sleep_Time_Slot(uint8_t minutes) {
+    for (uint8_t i = 0; i < RF_SLEEP_TIME_COUNT; i++) {
+        if (Rf_Sleep_Minutes_Tab[i] == minutes) {
+            return i;
+        }
+    }
+    return RF_SLEEP_TIME_INVALID;
+}
+
+uint8_t Rf_Sleep_Time_Get(void) {
+    return Keyboard_Info.Sleep_Time;
+}
+
+uint32_t Rf_Sleep_Time_Seconds(void) {
+    return (uint32_t)Keyboard_Info.Sleep_Time * 60U;
+}
+
+void Rf_Sleep_Time_Set(uint8_t minutes) {
+    if (Rf_Sleep_Time_Slot(minutes) == RF_SLEEP_TIME_INVALID) {
+        return;
+    }
+    if (Keyboard_Info.Sleep_Time != minutes) {
+        Keyboard_Info.Sleep_Time = minutes;
+        Save_Flash_Set();
+    }
+    Sleep_Time_Retry_Left = RF_SLEEP_TIME_RETRIES;
+    Sleep_Time_Spi_Send   = true;
+}
+
+void Rf_Sleep_Time_Cycle(void) {
+    uint8_t slot = Rf_Sleep_Time_Slot(Keyboard_Info.Sleep_Time);
+    slot         = (slot == RF_SLEEP_TIME_INVALID) ? 0 : (uint8_t)((slot + 1) % RF_SLEEP_TIME_COUNT);
+    Rf_Sleep_Time_Set(Rf_Sleep_Minutes_Tab[slot]);
+}
+
+static uint32_t Spi_Read_U32_BE(const uint8_t *p) {
+    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | p[3];
+}
+
+// SPI ISR, RF status reply: bytes 11-14 / 15-18 hold the module's idle / deep sleep time (s, BE)
+void Rf_Sleep_Time_Check(const uint8_t *Data) {
+    if ((Spi_Read_U32_BE(&Data[11]) == Rf_Sleep_Time_Seconds()) && (Spi_Read_U32_BE(&Data[15]) == RF_DEEP_SLEEP_TIME)) {
+        Sleep_Time_Retry_Left = RF_SLEEP_TIME_RETRIES;
+    } else if (!Sleep_Time_Spi_Send && Sleep_Time_Retry_Left) {
+        Sleep_Time_Retry_Left--;
+        Sleep_Time_Spi_Send = true;
+    }
+}
+
+// 10 ms tick: one SPI command per tick, idle time first, then deep sleep time
+void Sleep_Time_Synchronization(void) {
+    if (Sleep_Time_Spi_Step == 0) {
+        Spi_Send_Commad(USER_SLEEP_TIME_WRITE);
+        Sleep_Time_Spi_Step = 1;
+    } else {
+        Spi_Send_Commad(USER_DSLEEP_TIME_WRITE);
+        Sleep_Time_Spi_Step = 0;
+        Sleep_Time_Spi_Send = false;
+    }
+}
+#endif
+
 uint8_t es_keyboard_leds(void) {
     switch (Keyboard_Info.Key_Mode) {
         // In wireless modes the host LED report arrives through the RF module

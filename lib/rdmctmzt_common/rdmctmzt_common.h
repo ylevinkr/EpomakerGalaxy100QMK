@@ -65,6 +65,12 @@
 #define CON_REPORT_ID 0x04   // Extend Consumer report ID.
 #define MOUSE_REPORT_ID 0x02 // Extend mouse	   report ID.
 
+// RF sleep timer: tell the RF module how long to stay idle before it sleeps,
+// using the stock firmware's SPI commands (see README). Opt-in per keyboard.
+#ifndef RF_SLEEP_TIMER_ENABLE
+#    define RF_SLEEP_TIMER_ENABLE 0
+#endif
+
 #define USER_DEFINE_KEY (QK_KB)
 enum Custom_Keycodes {
     QMK_KB_MODE_2P4G = USER_DEFINE_KEY,
@@ -109,6 +115,10 @@ enum Custom_Keycodes {
     SIDE_SPD,  // Decrease Side LED effect speed
 #endif
     QMK_RGB_TOGGLE, // Toggle the main, logo and side LEDs together
+#if RF_SLEEP_TIMER_ENABLE
+    QMK_SLEEP_TIME, // Cycle the RF idle sleep time
+#endif
+    QMK_KB_SAFE_RANGE // First QK_KB keycode free for keyboard/keymap use
 };
 
 enum Custom_KeyModes { QMK_BLE_MODE = 0, QMK_2P4G_MODE, QMK_USB_MODE };
@@ -150,6 +160,9 @@ typedef struct {
     uint8_t Side_Brightness; // Side LED brightness (0-255)
     uint8_t Side_Speed;      // Side LED effect speed (0-4)
 #endif
+#if RF_SLEEP_TIMER_ENABLE
+    uint8_t Sleep_Time; // RF idle sleep time in minutes (one of the values in three_mode.c)
+#endif
 } Keyboard_Info_t;
 
 typedef struct {
@@ -187,6 +200,9 @@ typedef enum {
 #define INIT_WIN_NLOCK (0)
 #define INIT_WIN_LOCK (1)
 #define INIT_WIN_LOCK_NLOCK (INIT_WIN_NLOCK)
+
+#define RF_SLEEP_TIME_DEFAULT (3)        // minutes, same default as the stock firmware
+#define RF_DEEP_SLEEP_TIME (0xFFFFFFUL) // seconds; the stock firmware effectively disables deep sleep
 
 #define U_PWM (RGB_MATRIX_MAXIMUM_BRIGHTNESS)
 
@@ -246,6 +262,9 @@ typedef enum {
 #define DBG_SW QMK_DEBUG_SWITCH
 #define MW_CH QMK_MAC_WIN_CH
 #define RGB_RTOG QMK_RGB_TOGGLE
+#if RF_SLEEP_TIMER_ENABLE
+#    define SLP_TM QMK_SLEEP_TIME
+#endif
 
 // Logo LED shortnames (only available when LOGO_LED_ENABLE is set)
 #if LOGO_LED_ENABLE

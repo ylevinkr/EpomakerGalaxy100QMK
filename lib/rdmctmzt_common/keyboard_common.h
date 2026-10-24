@@ -78,6 +78,9 @@
 #define COLOR_GREEN 0, 255, 0
 #define COLOR_RED 255, 0, 0
 #define COLOR_YELLOW 255, 255, 0
+#define COLOR_CYAN 0, 255, 255
+
+#define SLEEP_TIME_INDICATOR_TIMEOUT 2000 // ms the SLP_TM feedback stays on
 
 // ============================================================================
 // State Variables (extern declarations)

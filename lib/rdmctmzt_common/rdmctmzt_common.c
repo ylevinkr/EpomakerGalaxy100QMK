@@ -40,6 +40,9 @@ Keyboard_Info_t Keyboard_Info = {
     .Side_Brightness = 180,              // Default brightness
     .Side_Speed      = 2,                // Medium speed
 #endif
+#if RF_SLEEP_TIMER_ENABLE
+    .Sleep_Time = RF_SLEEP_TIME_DEFAULT,
+#endif
 };
 
 Keyboard_Status_t Keyboard_Status = {.System_Work_Status = 0x00, .System_Work_Mode = 0x00, .System_Work_Channel = 0x00, .System_Connect_Status = 0x00, .System_Led_Status = 0x00, .System_Sleep_Mode = 0x00};
@@ -325,6 +328,11 @@ OSAL_IRQ_HANDLER(Vector78) {
         if (Ble_Name_Spi_Send) {
             Ble_Name_Synchronization();
         }
+#if RF_SLEEP_TIMER_ENABLE
+        else if (Sleep_Time_Spi_Send) {
+            Sleep_Time_Synchronization();
+        }
+#endif
 
         Systick_Led_Count++;
         if (Systick_Led_Count >= 255) {
@@ -605,6 +613,13 @@ void Init_Keyboard_Infomation(void) {
         // Hue, Saturation, Brightness can be any value 0-255
 #endif
     }
+
+#if RF_SLEEP_TIMER_ENABLE
+    // Also covers flash written by a firmware without this field (0x00 / 0xFF)
+    if (Rf_Sleep_Time_Slot(Keyboard_Info.Sleep_Time) == RF_SLEEP_TIME_INVALID) {
+        Keyboard_Info.Sleep_Time = RF_SLEEP_TIME_DEFAULT;
+    }
+#endif
 
 #if HAS_MODE_SWITCH
     // Read current mode switch position and set initial mode accordingly
