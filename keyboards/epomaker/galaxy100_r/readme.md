@@ -11,6 +11,9 @@ state kept in EEPROM).
 
     make epomaker/galaxy100_r:fn_highlight
 
+The wireless sleep time (1, 3, 10 or 30 minutes, default 3) is set with `SLP_TM`
+(Fn+Y in `fn_highlight`) or in VIA under Wireless > Power > Sleep after.
+
 The original Lite notes follow.
 
 A customizable 96% (1800) keyboard with 100 keys and a rotary knob, built around

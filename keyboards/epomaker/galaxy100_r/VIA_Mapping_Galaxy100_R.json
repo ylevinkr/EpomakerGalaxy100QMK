@@ -90,6 +90,27 @@
                     ]
                 }
             ]
+        },
+        {
+            "label": "Wireless",
+            "content": [
+                {
+                    "label": "Power",
+                    "content": [
+                        {
+                            "label": "Sleep after",
+                            "type": "dropdown",
+                            "options": [
+                                ["1 minute", 1],
+                                ["3 minutes", 3],
+                                ["10 minutes", 10],
+                                ["30 minutes", 30]
+                            ],
+                            "content": ["id_rf_sleep_time", 0, 1]
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "customKeycodes": [
@@ -172,6 +193,11 @@
             "name": "RGB_RTOG",
             "title": "Toggle all LEDs",
             "shortName": "RGB_RTOG"
+        },
+        {
+            "name": "SLP_TM",
+            "title": "Cycle the wireless sleep time (1/3/10/30 min)",
+            "shortName": "SLP_TM"
         },
         {
             "name": "FN_HL",

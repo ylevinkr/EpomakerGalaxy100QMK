@@ -17,6 +17,9 @@
  */
 
 #include "keyboard_common.h"
+#ifdef VIA_ENABLE
+#    include "via.h"
+#endif
 
 // ===========================================================================
 // Keyboard-specific data
@@ -102,3 +105,32 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     }
     return kb_process_record_common(keycode, record);
 }
+
+#ifdef VIA_ENABLE
+// VIA "Wireless" menu (VIA_Mapping_Galaxy100_R.json): custom channel, value 1 = sleep time in minutes
+void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
+    uint8_t *command_id = &(data[0]);
+    uint8_t *channel_id = &(data[1]);
+    uint8_t *value_id   = &(data[2]);
+    uint8_t *value_data = &(data[3]);
+
+    if (*channel_id != id_custom_channel || *value_id != 1) {
+        *command_id = id_unhandled;
+        return;
+    }
+
+    switch (*command_id) {
+        case id_custom_set_value:
+            Rf_Sleep_Time_Set(value_data[0]);
+            break;
+        case id_custom_get_value:
+            value_data[0] = Rf_Sleep_Time_Get();
+            break;
+        case id_custom_save:
+            break; // saved to flash when set
+        default:
+            *command_id = id_unhandled;
+            break;
+    }
+}
+#endif

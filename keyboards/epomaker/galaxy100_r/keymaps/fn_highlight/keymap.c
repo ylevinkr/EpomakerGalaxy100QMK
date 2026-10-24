@@ -24,9 +24,9 @@
 _Static_assert(MATRIX_COLS <= 16, "highlight bitmap uses one uint16_t per row");
 
 enum keymap_keycodes {
-    // Directly after the library's keycodes so it is VIA customKeycodes index 16
-    FN_HL = QMK_RGB_TOGGLE + 1,
+    FN_HL = QMK_KB_SAFE_RANGE, // VIA customKeycodes: entry after SLP_TM
 };
+_Static_assert((uint16_t)FN_HL == (uint16_t)QK_KB_17, "FN_HL must match its customKeycodes position in VIA_Mapping_Galaxy100_R.json");
 
 // Layers that never trigger the overlay (Windows base, macOS base)
 #ifndef FN_HL_BASE_LAYERS
@@ -159,7 +159,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [2] = LAYOUT_1800_ansi(
         KC_ESC,  KC_MYCM, KC_WHOM, KC_CALC, KC_MAIL, KC_MSEL, KC_MSTP, KC_MPRV, KC_MPLY, KC_MNXT, KC_MUTE, KC_VOLD, KC_VOLU, KC_DEL,  KC_HOME, KC_END,  KC_PSCR, KC_MUTE,
         KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS, KC_EQL,  EE_CLR,  KC_INS,  KC_NUM,  KC_PSLS, KC_PAST, KC_PMNS,
-        KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, KC_NO,  KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
+        KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, SLP_TM, KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
         KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
         KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, RM_VALU, KC_P1,   KC_P2,   KC_P3,   KC_PENT,
         KC_LCTL, QK_WLO,  KC_LALT,                   QK_BAT,                    KC_RALT, KC_NO,   RM_SPDD, RM_VALD, RM_SPDU, KC_P0,   KC_PDOT
@@ -167,7 +167,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [3] = LAYOUT_1800_ansi(
         KC_ESC,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  KC_DEL,  KC_HOME, KC_END,  KC_PSCR, KC_MUTE,
         KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS, KC_EQL,  EE_CLR,  KC_INS,  KC_NUM,  KC_PSLS, KC_PAST, KC_PMNS,
-        KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, KC_NO,  KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
+        KC_TAB,  MD_BLE1, MD_BLE2, MD_BLE3, MD_24G,  RGB_RTOG, SLP_TM, KC_U,    KC_I,    KC_O,    KC_P,    RM_SATD, RM_SATU, RM_HUED, KC_PGUP, KC_P7,   KC_P8,   KC_P9,   KC_PPLS,
         KC_CAPS, TO(0),   TO(1),   KC_D,    KC_F,    KC_G,    FN_HL,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT, RM_NEXT, KC_PGDN, KC_P4,   KC_P5,   KC_P6,
         KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT, RM_VALU, KC_P1,   KC_P2,   KC_P3,   KC_PENT,
         KC_LCTL, KC_LALT, KC_LGUI,                   QK_BAT,                    KC_RGUI, KC_NO,   RM_SPDD, RM_VALD, RM_SPDU, KC_P0,   KC_PDOT
