@@ -65,6 +65,12 @@
 #    define BATTERY_MED_THRESHOLD 50
 #endif
 
+// Layers that count as "Fn held": while any of them is active the current
+// connection mode is shown. Matches the MO(2)/MO(3) Fn layers of the boards here.
+#ifndef KB_FN_LAYER_MASK
+#    define KB_FN_LAYER_MASK ((1UL << 2) | (1UL << 3))
+#endif
+
 // LED colors (RGB values)
 #define COLOR_OFF 0, 0, 0
 #define COLOR_WHITE U_PWM, U_PWM, U_PWM
@@ -76,9 +82,6 @@
 // ============================================================================
 // State Variables (extern declarations)
 // ============================================================================
-
-// Key state tracking
-extern bool Key_Fn_Status;
 
 // Battery display state
 extern bool    User_Key_Batt_Num_Show;

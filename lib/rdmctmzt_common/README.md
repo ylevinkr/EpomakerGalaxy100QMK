@@ -74,6 +74,7 @@ Define these in your keyboard's `config.h` to customize behavior:
 | `LED_CONNECTION_INDICATOR_ENABLE` | `0` (off) | Always show connection type on `LED_CONNECTION_INDEX`     |
 | `LOGO_LED_ENABLE`                 | `0` (off) | Enable Logo LED feature with independent effects          |
 | `HAS_MODE_SWITCH`                 | `1` (on)  | Read a 3-position USB/2.4G/BT switch on boot (see below)  |
+| `KB_FN_LAYER_MASK`                | `2`, `3`  | Layers that show the connection mode while active (Fn)    |
 
 ### Required LED Index Definitions
 
