@@ -21,9 +21,6 @@
 // State Variables
 // ============================================================================
 
-// Key state tracking
-bool Key_Fn_Status = false;
-
 // Battery display state
 bool    User_Key_Batt_Num_Show = false;
 uint8_t User_Key_Batt_Count    = 0;
@@ -406,8 +403,8 @@ bool kb_rgb_matrix_indicators_common(uint8_t led_min, uint8_t led_max) {
 #endif
     kb_update_state_indicators();
 
-    // Show current connection mode when Fn key is held
-    if (Key_Fn_Status) {
+    // Show current connection mode while an Fn layer is active (MO, LT, TT, OSL, ...)
+    if (layer_state & KB_FN_LAYER_MASK) {
         kb_show_current_connection_mode();
     }
 
@@ -798,22 +795,6 @@ bool kb_process_record_common(uint16_t keycode, keyrecord_t *record) {
                 if (rgb_matrix_get_speed() <= 0) {
                     Led_Point_Count = 3;
                 }
-            }
-        }
-            return true;
-        case MO(2): { // FN
-            if (record->event.pressed) {
-                Key_Fn_Status = true;
-            } else {
-                Key_Fn_Status = false;
-            }
-        }
-            return true;
-        case MO(3): { // FN
-            if (record->event.pressed) {
-                Key_Fn_Status = true;
-            } else {
-                Key_Fn_Status = false;
             }
         }
             return true;
