@@ -94,6 +94,9 @@ Each keyboard **must** define these LED indices in `config.h`:
 #define LED_BLE_3_INDEX      20   // Bluetooth channel 3 key
 #define LED_2P4G_INDEX       21   // 2.4GHz mode key
 #define LED_USB_INDEX        17   // USB mode key
+
+// Optional: Num Lock indicator
+#define LED_NUM_INDEX        33   // Num Lock key
 ```
 
 ### Battery Display Configuration
@@ -120,6 +123,7 @@ Each keyboard **must** define these LED indices in `config.h`:
 | LED                              | Color | Meaning               |
 | -------------------------------- | ----- | --------------------- |
 | **Caps Lock** (`LED_CAP_INDEX`)  | White | Caps Lock is active   |
+| **Num Lock** (`LED_NUM_INDEX`)   | White | Num Lock is active    |
 | **Win Lock** (`LED_WIN_L_INDEX`) | White | Windows key is locked |
 
 ### Connection Indicator (when `LED_CONNECTION_INDICATOR_ENABLE = 1`)
