@@ -65,6 +65,12 @@
 #    define BATTERY_MED_THRESHOLD 50
 #endif
 
+// Layers that count as "Fn held": while any of them is active the current
+// connection mode is shown. Matches the MO(2)/MO(3) Fn layers of the boards here.
+#ifndef KB_FN_LAYER_MASK
+#    define KB_FN_LAYER_MASK ((1UL << 2) | (1UL << 3))
+#endif
+
 // LED colors (RGB values)
 #define COLOR_OFF 0, 0, 0
 #define COLOR_WHITE U_PWM, U_PWM, U_PWM
@@ -72,13 +78,13 @@
 #define COLOR_GREEN 0, 255, 0
 #define COLOR_RED 255, 0, 0
 #define COLOR_YELLOW 255, 255, 0
+#define COLOR_CYAN 0, 255, 255
+
+#define SLEEP_TIME_INDICATOR_TIMEOUT 2000 // ms the SLP_TM feedback stays on
 
 // ============================================================================
 // State Variables (extern declarations)
 // ============================================================================
-
-// Key state tracking
-extern bool Key_Fn_Status;
 
 // Battery display state
 extern bool    User_Key_Batt_Num_Show;
@@ -108,6 +114,9 @@ bool kb_is_usb_mode(void);
 
 // Get current Caps Lock state based on mode
 bool kb_get_caps_lock_state(void);
+
+// Get current Num Lock state based on mode
+bool kb_get_num_lock_state(void);
 
 // Set LED to a specific RGB color
 void kb_set_led_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b);

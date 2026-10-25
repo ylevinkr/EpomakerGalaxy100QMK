@@ -59,6 +59,31 @@ void app_2g4_buffer_send_add(void) {
     if (app_2g4_data_send >= APP_2G4_BUF_CNT) app_2g4_data_send = 0;
 }
 
+// Queue one SPI frame for the RF module. Called from thread context while the
+// 2 ms timer ISR drains the queue. HID reports are full-state snapshots, so when
+// the queue is full the newest pending frame of the same type is overwritten:
+// the host still ends up with the current state instead of missing a key release.
+void app_2g4_buffer_push(const uint8_t *frame) {
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+
+    if (!app_2g4_buffer_full()) {
+        memcpy(app_2g4_data[app_2g4_data_rev], frame, APP_2G4_BUF_SIZE);
+        app_2g4_buffer_rev_add();
+    } else {
+        uint8_t slot = app_2g4_data_rev;
+        while (slot != app_2g4_data_send) {
+            slot = (slot == 0) ? (APP_2G4_BUF_CNT - 1) : (slot - 1);
+            if (app_2g4_data[slot][2] == frame[2]) {
+                memcpy(app_2g4_data[slot], frame, APP_2G4_BUF_SIZE);
+                break;
+            }
+        }
+    }
+
+    __set_PRIMASK(primask);
+}
+
 void Spi_Main_Loop(void) {
     if (Init_Spi_Power_Up || Keyboard_Status.System_Work_Status) {
         return;
@@ -208,6 +233,15 @@ void Spi_Send_Commad(uint8_t Commad) {
             g_es_spi_tx_buf[6 + len] = USER_BLE3_NAME[len];
         }
     }
+#if RF_SLEEP_TIMER_ENABLE
+    else if ((Commad == USER_SLEEP_TIME_WRITE) || (Commad == USER_DSLEEP_TIME_WRITE)) {
+        uint32_t Seconds   = (Commad == USER_SLEEP_TIME_WRITE) ? Rf_Sleep_Time_Seconds() : RF_DEEP_SLEEP_TIME;
+        g_es_spi_tx_buf[3] = (Seconds >> 24) & 0XFF;
+        g_es_spi_tx_buf[4] = (Seconds >> 16) & 0XFF;
+        g_es_spi_tx_buf[5] = (Seconds >> 8) & 0XFF;
+        g_es_spi_tx_buf[6] = Seconds & 0XFF;
+    }
+#endif
 
     es_spi_send_recv_by_dma(USER_KEYBOARD_LENGTH, g_es_spi_rx_buf, g_es_spi_tx_buf);
 }
@@ -290,6 +324,9 @@ void Get_Spi_Return_Data(uint8_t *Data) {
                     Ble_Name_Spi_Count = QMK_BLE_CHANNEL_1;
                 }
             }
+#if RF_SLEEP_TIMER_ENABLE
+            Rf_Sleep_Time_Check(Data);
+#endif
         } else if (Data[2] == USER_KEYBOARD_SLEEP) {
             if (Keyboard_Status.System_Work_Status && (Data[3] == USER_SLEEP_PASS)) {
                 if (Keyboard_Info.Key_Mode != QMK_USB_MODE) {

@@ -21,9 +21,6 @@
 // State Variables
 // ============================================================================
 
-// Key state tracking
-bool Key_Fn_Status = false;
-
 // Battery display state
 bool    User_Key_Batt_Num_Show = false;
 uint8_t User_Key_Batt_Count    = 0;
@@ -36,8 +33,16 @@ uint8_t Mac_Win_Point_Count = 0;
 bool    Test_Led    = false;
 uint8_t Test_Colour = 0;
 
+#if RF_SLEEP_TIMER_ENABLE
+// Sleep time feedback on the battery LEDs after pressing SLP_TM
+static bool     Sleep_Time_Show       = false;
+static uint16_t Sleep_Time_Show_Timer = 0;
+_Static_assert(BATTERY_LED_COUNT >= RF_SLEEP_TIME_COUNT, "sleep time feedback uses the battery LEDs");
+#endif
+
 // Caps Lock state tracking for wireless modes
 static bool local_caps_lock_state = false;
+static bool local_num_lock_state  = false;
 
 // EEPROM reset visual feedback
 static uint8_t  reset_key_led_index = 0;
@@ -67,6 +72,13 @@ bool kb_get_caps_lock_state(void) {
         return host_keyboard_led_state().caps_lock && Usb_If_Ok_Led;
     }
     return local_caps_lock_state;
+}
+
+bool kb_get_num_lock_state(void) {
+    if (kb_is_usb_mode()) {
+        return host_keyboard_led_state().num_lock && Usb_If_Ok_Led;
+    }
+    return local_num_lock_state;
 }
 
 void kb_set_led_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b) {
@@ -255,6 +267,12 @@ void kb_user_point_show(void) {
         kb_set_led_color(LED_CAP_INDEX, COLOR_WHITE);
     }
 
+#ifdef LED_NUM_INDEX
+    if (kb_get_num_lock_state()) {
+        kb_set_led_color(LED_NUM_INDEX, COLOR_WHITE);
+    }
+#endif
+
     // Win Lock indicator
     if (Keyboard_Info.Win_Lock) {
         kb_set_led_color(LED_WIN_L_INDEX, COLOR_WHITE);
@@ -316,6 +334,12 @@ void kb_update_state_indicators(void) {
     if (kb_get_caps_lock_state()) {
         kb_set_led_color(LED_CAP_INDEX, COLOR_WHITE);
     }
+
+#ifdef LED_NUM_INDEX
+    if (kb_get_num_lock_state()) {
+        kb_set_led_color(LED_NUM_INDEX, COLOR_WHITE);
+    }
+#endif
 
     if (Keyboard_Info.Win_Lock) {
         kb_set_led_color(LED_WIN_L_INDEX, COLOR_WHITE);
@@ -406,8 +430,8 @@ bool kb_rgb_matrix_indicators_common(uint8_t led_min, uint8_t led_max) {
 #endif
     kb_update_state_indicators();
 
-    // Show current connection mode when Fn key is held
-    if (Key_Fn_Status) {
+    // Show current connection mode while an Fn layer is active (MO, LT, TT, OSL, ...)
+    if (layer_state & KB_FN_LAYER_MASK) {
         kb_show_current_connection_mode();
     }
 
@@ -435,7 +459,24 @@ bool kb_rgb_matrix_indicators_common(uint8_t led_min, uint8_t led_max) {
 
     if (User_Power_Low) {
         kb_led_power_low_show();
-    } else if (Test_Led) {
+        return false;
+    }
+
+#if RF_SLEEP_TIMER_ENABLE
+    // One LED per step: 1 = 1 min, 2 = 3 min, 3 = 10 min, 4 = 30 min
+    if (Sleep_Time_Show) {
+        uint8_t slot = Rf_Sleep_Time_Slot(Keyboard_Info.Sleep_Time);
+        for (uint8_t i = 0; i < RF_SLEEP_TIME_COUNT; i++) {
+            if (i <= slot) {
+                kb_set_led_color(Led_Batt_Index_Tab[i], COLOR_CYAN);
+            } else {
+                kb_led_off(Led_Batt_Index_Tab[i]);
+            }
+        }
+    }
+#endif
+
+    if (Test_Led) {
         kb_user_test_colour_show();
     } else if (Led_Rf_Pair_Flg && (Keyboard_Info.Key_Mode != QMK_USB_MODE)) {
         kb_led_rf_mode_show();
@@ -463,6 +504,7 @@ void kb_notify_usb_device_state_change(struct usb_device_state usb_device_state)
 bool kb_led_update(led_t led_state) {
     // Track Caps Lock state locally for all modes
     local_caps_lock_state = led_state.caps_lock;
+    local_num_lock_state  = led_state.num_lock;
 
     // In wireless modes, we need to sync the LED state with the wireless module
     if (Keyboard_Info.Key_Mode != QMK_USB_MODE) {
@@ -513,6 +555,11 @@ void kb_housekeeping_task(void) {
     if (Show_Mode_Indicator && timer_elapsed(Mode_Indicator_Timer) > MODE_INDICATOR_TIMEOUT) {
         Show_Mode_Indicator = false;
     }
+#if RF_SLEEP_TIMER_ENABLE
+    if (Sleep_Time_Show && timer_elapsed(Sleep_Time_Show_Timer) > SLEEP_TIME_INDICATOR_TIMEOUT) {
+        Sleep_Time_Show = false;
+    }
+#endif
 
     Usb_Auto_Switch_Task();
 
@@ -553,6 +600,9 @@ void kb_housekeeping_task(void) {
         Keyboard_Info.Side_Saturation = 239;
         Keyboard_Info.Side_Brightness = 180;
         Keyboard_Info.Side_Speed      = 2;
+#endif
+#if RF_SLEEP_TIMER_ENABLE
+        Keyboard_Info.Sleep_Time = RF_SLEEP_TIME_DEFAULT;
 #endif
         // Save the reset keyboard info to EEPROM
         eeprom_write_block_user((void *)&Keyboard_Info.Key_Mode, 0, sizeof(Keyboard_Info_t));
@@ -731,6 +781,15 @@ bool kb_process_record_common(uint16_t keycode, keyrecord_t *record) {
                 kb_toggle_all_leds();
             }
             return true;
+#if RF_SLEEP_TIMER_ENABLE
+        case QMK_SLEEP_TIME:
+            if (record->event.pressed) {
+                Rf_Sleep_Time_Cycle();
+                Sleep_Time_Show       = true;
+                Sleep_Time_Show_Timer = timer_read();
+            }
+            return true;
+#endif
         case QMK_TEST_COLOUR: {
             if (!record->event.pressed) {
                 if (Test_Led == false) {
@@ -798,22 +857,6 @@ bool kb_process_record_common(uint16_t keycode, keyrecord_t *record) {
                 if (rgb_matrix_get_speed() <= 0) {
                     Led_Point_Count = 3;
                 }
-            }
-        }
-            return true;
-        case MO(2): { // FN
-            if (record->event.pressed) {
-                Key_Fn_Status = true;
-            } else {
-                Key_Fn_Status = false;
-            }
-        }
-            return true;
-        case MO(3): { // FN
-            if (record->event.pressed) {
-                Key_Fn_Status = true;
-            } else {
-                Key_Fn_Status = false;
             }
         }
             return true;

@@ -29,6 +29,19 @@ extern bool Usb_Dis_Connect;
 extern void Mode_Synchronization(void);
 extern void Ble_Name_Synchronization(void);
 
+#if RF_SLEEP_TIMER_ENABLE
+#    define RF_SLEEP_TIME_COUNT 4
+#    define RF_SLEEP_TIME_INVALID 0XFF
+extern volatile bool Sleep_Time_Spi_Send;
+extern uint8_t       Rf_Sleep_Time_Slot(uint8_t minutes);
+extern uint8_t       Rf_Sleep_Time_Get(void);
+extern uint32_t      Rf_Sleep_Time_Seconds(void);
+extern void          Rf_Sleep_Time_Set(uint8_t minutes);
+extern void          Rf_Sleep_Time_Cycle(void);
+extern void          Rf_Sleep_Time_Check(const uint8_t *Data);
+extern void          Sleep_Time_Synchronization(void);
+#endif
+
 extern uint8_t es_keyboard_leds(void);
 extern void es_send_keyboard(report_keyboard_t *report);
 extern void es_send_nkro(report_nkro_t *report);
