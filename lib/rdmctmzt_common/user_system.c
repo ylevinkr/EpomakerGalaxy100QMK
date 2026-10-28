@@ -368,54 +368,10 @@ void es_chibios_user_idle_loop_hook(void) {
         Usb_Sleep_Status = 0XAA;
     }
 
-    /*休眠唤醒之后记录唤醒按下按键的位置*/
-    uint8_t Sleep_Status = 0x00;
-    for (i = 0; i < MATRIX_ROWS; i++) { // ROW
-        if (!gpio_read_pin(User_Pin_Tab_Row[i])) {
-            Sleep_Status |= (1 << i);
-        }
-    }
-
     NVIC_DisableIRQ((IRQn_Type)EXTI_0to1_IRQn);  /* EXTI_0to1_IRQn interrupt */
     NVIC_DisableIRQ((IRQn_Type)EXTI_2to3_IRQn);  /* EXTI_2to3_IRQn interrupt */
     NVIC_DisableIRQ((IRQn_Type)EXTI_4to15_IRQn); /* EXTI_4to15_IRQn interrupt */
     NVIC_DisableIRQ((IRQn_Type)GP16C4T2_IRQn);   /* GP16C4T2_IRQHandler */
-
-    // 唤醒源配置输出高电平
-    for (i = 0; i < MATRIX_COLS; i++) { // COL
-        gpio_write_pin_high(User_Pin_Tab_Col[i]);
-    }
-
-    delay = 50;
-    while (delay--)
-        ;
-
-    uint8_t Row_Count = 0, Col_Count = 0;
-    for (i = 0; i < MATRIX_ROWS; i++) {
-        if ((1 << i) & Sleep_Status) {
-            for (uint8_t j = 0; j < MATRIX_COLS; j++) {
-                gpio_write_pin_low(User_Pin_Tab_Col[j]);
-
-                delay = 50;
-                while (delay--)
-                    ;
-
-                if (!gpio_read_pin(User_Pin_Tab_Row[i])) {
-                    Row_Count = i;
-                    Col_Count = j;
-                    break;
-                }
-
-                for (uint8_t k = 0; k < MATRIX_COLS; k++) {
-                    gpio_write_pin_high(User_Pin_Tab_Col[k]);
-                }
-
-                delay = 50;
-                while (delay--)
-                    ;
-            }
-        }
-    }
 
     // 唤醒源配置输出高电平
     for (i = 0; i < MATRIX_COLS; i++) { // COL
@@ -428,6 +384,7 @@ void es_chibios_user_idle_loop_hook(void) {
     NVIC_EnableIRQ((IRQn_Type)SysTick_IRQn);
 
     // 在USB模式下
+    // The wake key is not injected: a key still held is picked up by the next matrix scan.
     if (Keyboard_Info.Key_Mode == QMK_USB_MODE) {
         if (USBD1.status & 0x2) {
             usb_lld_wakeup_host(0);
@@ -439,14 +396,6 @@ void es_chibios_user_idle_loop_hook(void) {
                 }
             }
         }
-
-        keypos_t pos = {.col = Col_Count, .row = Row_Count};
-        uint16_t keycode = keymap_key_to_keycode(0, pos);
-
-        register_code(keycode);
-        wait_ms(2);
-        unregister_code(keycode);
-        wait_ms(2);
     }
 
     Board_Wakeup_Init();

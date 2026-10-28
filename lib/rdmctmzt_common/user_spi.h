@@ -53,6 +53,7 @@
 
 #define SPI_DELAY_RF_TIME       (60)
 #define SPI_DELAY_USB_TIME      (500 * 3)
+#define SPI_HANDSHAKE_TIMEOUT_TICKS (250) // 2 ms ticks: give up on a transfer after 500 ms
 
 enum Custom_Spi_Ack_S {
     SPI_NACK,
@@ -86,6 +87,7 @@ extern uint8_t app_2g4_buffer_full(void);
 extern uint8_t app_2g4_buffer_empty(void);
 extern void app_2g4_buffer_rev_add(void);
 extern void app_2g4_buffer_send_add(void);
+extern void app_2g4_buffer_push(const uint8_t *frame);
 extern void Spi_Main_Loop(void);
 
 extern void es_ble_spi_init(void);
