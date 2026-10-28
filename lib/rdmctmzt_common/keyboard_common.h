@@ -115,6 +115,9 @@ bool kb_is_usb_mode(void);
 // Get current Caps Lock state based on mode
 bool kb_get_caps_lock_state(void);
 
+// Get current Num Lock state based on mode
+bool kb_get_num_lock_state(void);
+
 // Set LED to a specific RGB color
 void kb_set_led_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
 

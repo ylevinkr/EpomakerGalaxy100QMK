@@ -77,6 +77,7 @@
 
 /* LED Index Definitions required by lib/rdmctmzt_common/keyboard_common.h */
 #define LED_CAP_INDEX 56   // Caps Lock indicator (Caps key)
+#define LED_NUM_INDEX 33   // Num Lock indicator (Num key)
 #define LED_WIN_L_INDEX 90 // Win Lock indicator (left GUI key)
 #define LED_BATT_INDEX 19  // Low battery warning (number row '1' key)
 #define LED_BLE_1_INDEX 38 // 'Q' key position for BLE 1

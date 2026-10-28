@@ -42,6 +42,7 @@ _Static_assert(BATTERY_LED_COUNT >= RF_SLEEP_TIME_COUNT, "sleep time feedback us
 
 // Caps Lock state tracking for wireless modes
 static bool local_caps_lock_state = false;
+static bool local_num_lock_state  = false;
 
 // EEPROM reset visual feedback
 static uint8_t  reset_key_led_index = 0;
@@ -71,6 +72,13 @@ bool kb_get_caps_lock_state(void) {
         return host_keyboard_led_state().caps_lock && Usb_If_Ok_Led;
     }
     return local_caps_lock_state;
+}
+
+bool kb_get_num_lock_state(void) {
+    if (kb_is_usb_mode()) {
+        return host_keyboard_led_state().num_lock && Usb_If_Ok_Led;
+    }
+    return local_num_lock_state;
 }
 
 void kb_set_led_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b) {
@@ -259,6 +267,12 @@ void kb_user_point_show(void) {
         kb_set_led_color(LED_CAP_INDEX, COLOR_WHITE);
     }
 
+#ifdef LED_NUM_INDEX
+    if (kb_get_num_lock_state()) {
+        kb_set_led_color(LED_NUM_INDEX, COLOR_WHITE);
+    }
+#endif
+
     // Win Lock indicator
     if (Keyboard_Info.Win_Lock) {
         kb_set_led_color(LED_WIN_L_INDEX, COLOR_WHITE);
@@ -320,6 +334,12 @@ void kb_update_state_indicators(void) {
     if (kb_get_caps_lock_state()) {
         kb_set_led_color(LED_CAP_INDEX, COLOR_WHITE);
     }
+
+#ifdef LED_NUM_INDEX
+    if (kb_get_num_lock_state()) {
+        kb_set_led_color(LED_NUM_INDEX, COLOR_WHITE);
+    }
+#endif
 
     if (Keyboard_Info.Win_Lock) {
         kb_set_led_color(LED_WIN_L_INDEX, COLOR_WHITE);
@@ -484,6 +504,7 @@ void kb_notify_usb_device_state_change(struct usb_device_state usb_device_state)
 bool kb_led_update(led_t led_state) {
     // Track Caps Lock state locally for all modes
     local_caps_lock_state = led_state.caps_lock;
+    local_num_lock_state  = led_state.num_lock;
 
     // In wireless modes, we need to sync the LED state with the wireless module
     if (Keyboard_Info.Key_Mode != QMK_USB_MODE) {
