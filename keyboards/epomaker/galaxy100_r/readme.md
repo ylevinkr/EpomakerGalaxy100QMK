@@ -2,8 +2,11 @@
 
 Port of `epomaker/galaxy100_lite` for the Galaxy100 sold from Oct 2025 on
 (USB `36B0:30D4`, FS026). Matrix, pins, layout and LED map are identical to the
-Lite; only the name and PID differ. **Not** for the older WB32 Galaxy100
-(`342D:E489`).
+Lite; only the name, PID, BLE names and BLE ID differ. **Not** for the older
+WB32 Galaxy100 (`342D:E489`).
+
+The wireless sleep time (1, 3, 10 or 30 minutes, default 3) is set with the
+`SLP_TM` keycode or in VIA under Wireless > Power > Sleep after.
 
 The original Lite notes follow.
 

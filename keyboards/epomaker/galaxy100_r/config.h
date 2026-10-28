@@ -72,6 +72,9 @@
 #define USER_BLE2_NAME "Galaxy100-2"
 #define USER_BLE3_NAME "Galaxy100-3"
 
+// The stock firmware sets the RF module's idle time (TIME_ST key)
+#define RF_SLEEP_TIMER_ENABLE 1
+
 /* LED Index Definitions required by lib/rdmctmzt_common/keyboard_common.h */
 #define LED_CAP_INDEX 56   // Caps Lock indicator (Caps key)
 #define LED_WIN_L_INDEX 90 // Win Lock indicator (left GUI key)

@@ -48,6 +48,10 @@
 #define USER_BLE2_WRITE_NAME    0X13
 #define USER_BLE3_WRITE_NAME    0X14
 
+// Payload: idle time in seconds, 4 bytes big-endian (from the stock firmware)
+#define USER_SLEEP_TIME_WRITE   0X15
+#define USER_DSLEEP_TIME_WRITE  0X16
+
 #define APP_2G4_BUF_SIZE        (USER_KEYBOARD_LENGTH)
 #define APP_2G4_BUF_CNT         (20)
 
